@@ -1,0 +1,83 @@
+// Prisma Schema - 林语Mini聊天室数据库模型
+// 对应原 Java 项目的实体类
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id          String   @id @default(uuid())
+  name        String   // 用户名
+  type        String   @default("user") // 用户类型: user, bot
+  portrait    String?  // 头像URL (旧字段，保留兼容)
+  avatar      String?  // 头像 (与 Java 项目保持一致)
+  email       String?  // 邮箱
+  badge       String?  // 徽章JSON数组
+  loginTime   BigInt?  @map("login_time") // 最后登录时间戳
+  createTime  BigInt   @default(0) @map("create_time") // 创建时间戳
+  updateTime  BigInt   @default(0) @map("update_time") // 更新时间戳
+
+  @@map("user")
+}
+
+// 群组表
+model Group {
+  id          String   @id @default(uuid())
+  name        String   // 群组名称
+  portrait    String?  // 群组头像 (旧字段，保留兼容)
+  avatar      String?  // 头像 (与 Java 项目保持一致)
+  createTime  BigInt   @default(0) @map("create_time")
+  updateTime  BigInt   @default(0) @map("update_time")
+
+  @@map("group")
+}
+
+// 消息表
+model Message {
+  id           String   @id @default(uuid())
+  fromId       String   @map("from_id") // 发送者ID
+  toId         String   @map("to_id") // 接收者ID (用户ID或群组ID)
+  fromInfo     String?  @map("from_info") // 发送者信息JSON
+  message      String   // 消息内容
+  referenceMsg String?  @map("reference_msg") // 引用消息JSON
+  isShowTime   Boolean  @default(false) @map("is_show_time") // 是否显示时间
+  type         String   @default("text") // 消息类型: text, image, file, video, recall
+  source       String   @default("user") // 消息来源: user(私聊), group(群聊)
+  createTime   BigInt   @default(0) @map("create_time")
+  updateTime   BigInt   @default(0) @map("update_time")
+
+  @@map("message")
+}
+
+// 聊天列表表
+model ChatList {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id") // 所属用户ID
+  targetId    String   @map("target_id") // 目标ID (用户ID或群组ID)
+  targetInfo  String?  @map("target_info") // 目标信息JSON
+  unreadNum   Int      @default(0) @map("unread_num") // 未读消息数
+  lastMessage String?  @map("last_message") // 最后一条消息JSON
+  type        String   @default("private") // 类型: private(私聊), group(群聊)
+  createTime  BigInt   @default(0) @map("create_time")
+  updateTime  BigInt   @default(0) @map("update_time")
+
+  @@map("chat_list")
+}
+
+// 通知表
+model Notify {
+  id            String   @id @default(uuid())
+  notifyTitle   String?  @map("notify_title") // 通知标题
+  notifyContent String?  @map("notify_content") // 通知内容
+  type          String?  // 通知类型
+  createTime    BigInt   @default(0) @map("create_time")
+  updateTime    BigInt   @default(0) @map("update_time")
+
+  @@map("notify")
+}
