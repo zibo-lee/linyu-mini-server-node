@@ -15,11 +15,11 @@ export class VideoController {
    */
   @Post('invite')
   async invite(
-    @UserId() userId: string,
-    @CurrentUser() user: any,
-    @Body('toUserId') toUserId: string,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
+    @Body('isOnlyAudio') isOnlyAudio?: boolean,
   ) {
-    return this.videoService.invite(userId, toUserId, user.name);
+    return this.videoService.invite(fromUserId, userId, isOnlyAudio);
   }
 
   /**
@@ -28,23 +28,10 @@ export class VideoController {
    */
   @Post('accept')
   async accept(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
   ) {
-    return this.videoService.accept(userId, toUserId);
-  }
-
-  /**
-   * 拒绝视频邀请
-   * POST /api/v1/video/reject
-   */
-  @Post('reject')
-  async reject(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
-    @Body('reason') reason?: string,
-  ) {
-    return this.videoService.reject(userId, toUserId, reason);
+    return this.videoService.accept(fromUserId, userId);
   }
 
   /**
@@ -53,11 +40,11 @@ export class VideoController {
    */
   @Post('offer')
   async offer(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
-    @Body('sdp') sdp: any,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
+    @Body('desc') desc: any,
   ) {
-    return this.videoService.offer(userId, toUserId, sdp);
+    return this.videoService.offer(fromUserId, userId, desc);
   }
 
   /**
@@ -66,11 +53,11 @@ export class VideoController {
    */
   @Post('answer')
   async answer(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
-    @Body('sdp') sdp: any,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
+    @Body('desc') desc: any,
   ) {
-    return this.videoService.answer(userId, toUserId, sdp);
+    return this.videoService.answer(fromUserId, userId, desc);
   }
 
   /**
@@ -79,11 +66,11 @@ export class VideoController {
    */
   @Post('candidate')
   async candidate(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
     @Body('candidate') candidate: any,
   ) {
-    return this.videoService.candidate(userId, toUserId, candidate);
+    return this.videoService.candidate(fromUserId, userId, candidate);
   }
 
   /**
@@ -92,9 +79,9 @@ export class VideoController {
    */
   @Post('hangup')
   async hangup(
-    @UserId() userId: string,
-    @Body('toUserId') toUserId: string,
+    @UserId() fromUserId: string,
+    @Body('userId') userId: string,
   ) {
-    return this.videoService.hangup(userId, toUserId);
+    return this.videoService.hangup(fromUserId, userId);
   }
 }

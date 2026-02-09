@@ -16,18 +16,18 @@ export class VideoService {
   /**
    * 发起视频邀请 - 对应 POST /api/v1/video/invite
    */
-  async invite(fromUserId: string, toUserId: string, fromUserName: string) {
+  async invite(fromUserId: string, toUserId: string, isOnlyAudio?: boolean) {
     if (!this.websocket.isUserOnline(toUserId)) {
       throw new BadRequestException('对方不在线');
     }
 
     this.websocket.sendVideoToUser({
       type: 'invite',
-      fromUserId,
-      fromUserName,
+      fromId: fromUserId,
+      isOnlyAudio: isOnlyAudio || false,
     }, toUserId);
 
-    this.logger.log(`视频邀请: ${fromUserId} -> ${toUserId}`, 'VideoService');
+    this.logger.log(`视频邀请: ${fromUserId} -> ${toUserId}, 纯语音: ${isOnlyAudio || false}`, 'VideoService');
     return { success: true };
   }
 
@@ -37,7 +37,7 @@ export class VideoService {
   async accept(fromUserId: string, toUserId: string) {
     this.websocket.sendVideoToUser({
       type: 'accept',
-      fromUserId,
+      fromId: fromUserId,
     }, toUserId);
 
     this.logger.log(`视频接受: ${fromUserId} -> ${toUserId}`, 'VideoService');
@@ -45,27 +45,13 @@ export class VideoService {
   }
 
   /**
-   * 拒绝视频邀请 - 对应 POST /api/v1/video/reject
-   */
-  async reject(fromUserId: string, toUserId: string, reason?: string) {
-    this.websocket.sendVideoToUser({
-      type: 'reject',
-      fromUserId,
-      reason: reason || '对方拒绝了您的视频邀请',
-    }, toUserId);
-
-    this.logger.log(`视频拒绝: ${fromUserId} -> ${toUserId}`, 'VideoService');
-    return { success: true };
-  }
-
-  /**
    * 发送 Offer (SDP描述) - 对应 POST /api/v1/video/offer
    */
-  async offer(fromUserId: string, toUserId: string, sdp: any) {
+  async offer(fromUserId: string, toUserId: string, desc: any) {
     this.websocket.sendVideoToUser({
       type: 'offer',
-      fromUserId,
-      sdp,
+      fromId: fromUserId,
+      desc,
     }, toUserId);
 
     this.logger.log(`视频Offer: ${fromUserId} -> ${toUserId}`, 'VideoService');
@@ -75,11 +61,11 @@ export class VideoService {
   /**
    * 发送 Answer (SDP应答) - 对应 POST /api/v1/video/answer
    */
-  async answer(fromUserId: string, toUserId: string, sdp: any) {
+  async answer(fromUserId: string, toUserId: string, desc: any) {
     this.websocket.sendVideoToUser({
       type: 'answer',
-      fromUserId,
-      sdp,
+      fromId: fromUserId,
+      desc,
     }, toUserId);
 
     this.logger.log(`视频Answer: ${fromUserId} -> ${toUserId}`, 'VideoService');
@@ -92,7 +78,7 @@ export class VideoService {
   async candidate(fromUserId: string, toUserId: string, candidate: any) {
     this.websocket.sendVideoToUser({
       type: 'candidate',
-      fromUserId,
+      fromId: fromUserId,
       candidate,
     }, toUserId);
 
@@ -105,7 +91,7 @@ export class VideoService {
   async hangup(fromUserId: string, toUserId: string) {
     this.websocket.sendVideoToUser({
       type: 'hangup',
-      fromUserId,
+      fromId: fromUserId,
     }, toUserId);
 
     this.logger.log(`视频挂断: ${fromUserId} -> ${toUserId}`, 'VideoService');

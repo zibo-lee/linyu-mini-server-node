@@ -2,15 +2,21 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import * as fs from 'fs';
+import { WebsocketGateway } from '../../websocket/websocket.gateway';
+import { LoggerService } from '../../common/utils/logger.service';
 
 /**
- * 文件服务 - 对应原 Java 项目的 FileController
+ * 文件服务 - 对应原 Java 项目的 FileService
+ * 包含文件上传下载和文件传输信令功能
  */
 @Injectable()
 export class FileService {
   private uploadDir: string;
 
-  constructor() {
+  constructor(
+    private websocket: WebsocketGateway,
+    private logger: LoggerService,
+  ) {
     this.uploadDir = path.join(process.cwd(), 'uploads');
     // 确保上传目录存在
     if (!fs.existsSync(this.uploadDir)) {
@@ -85,5 +91,88 @@ export class FileService {
       throw new BadRequestException('文件不存在');
     }
     return filepath;
+  }
+
+  // ==================== 文件传输信令方法 ====================
+
+  /**
+   * 发送 Offer (SDP描述) - 对应 POST /api/v1/file/offer
+   */
+  async offer(fromUserId: string, toUserId: string, desc: any) {
+    this.websocket.sendFileToUser({
+      type: 'offer',
+      fromId: fromUserId,
+      desc,
+    }, toUserId);
+
+    this.logger.log(`文件传输Offer: ${fromUserId} -> ${toUserId}`, 'FileService');
+    return { success: true };
+  }
+
+  /**
+   * 发送 Answer (SDP应答) - 对应 POST /api/v1/file/answer
+   */
+  async answer(fromUserId: string, toUserId: string, desc: any) {
+    this.websocket.sendFileToUser({
+      type: 'answer',
+      fromId: fromUserId,
+      desc,
+    }, toUserId);
+
+    this.logger.log(`文件传输Answer: ${fromUserId} -> ${toUserId}`, 'FileService');
+    return { success: true };
+  }
+
+  /**
+   * 发送 ICE 候选 - 对应 POST /api/v1/file/candidate
+   */
+  async candidate(fromUserId: string, toUserId: string, candidate: any) {
+    this.websocket.sendFileToUser({
+      type: 'candidate',
+      fromId: fromUserId,
+      candidate,
+    }, toUserId);
+
+    return { success: true };
+  }
+
+  /**
+   * 取消文件传输 - 对应 POST /api/v1/file/cancel
+   */
+  async cancel(fromUserId: string, toUserId: string) {
+    this.websocket.sendFileToUser({
+      type: 'cancel',
+      fromId: fromUserId,
+    }, toUserId);
+
+    this.logger.log(`文件传输取消: ${fromUserId} -> ${toUserId}`, 'FileService');
+    return { success: true };
+  }
+
+  /**
+   * 发起文件传输邀请 - 对应 POST /api/v1/file/invite
+   */
+  async invite(fromUserId: string, toUserId: string, fileInfo: { name: string; size: number }) {
+    this.websocket.sendFileToUser({
+      type: 'invite',
+      fromId: fromUserId,
+      fileInfo,
+    }, toUserId);
+
+    this.logger.log(`文件传输邀请: ${fromUserId} -> ${toUserId}, 文件: ${fileInfo.name}`, 'FileService');
+    return { success: true };
+  }
+
+  /**
+   * 接受文件传输邀请 - 对应 POST /api/v1/file/accept
+   */
+  async accept(fromUserId: string, toUserId: string) {
+    this.websocket.sendFileToUser({
+      type: 'accept',
+      fromId: fromUserId,
+    }, toUserId);
+
+    this.logger.log(`文件传输接受: ${fromUserId} -> ${toUserId}`, 'FileService');
+    return { success: true };
   }
 }
