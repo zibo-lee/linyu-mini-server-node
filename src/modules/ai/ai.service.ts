@@ -10,7 +10,7 @@ import { WsContentType } from '../../common/constants';
 
 /**
  * AI 服务 - 对应原 Java 项目的 AiChatService
- * 支持豆包、DeepSeek、RAGFlow 三种 AI
+ * 支持豆包、DeepSeek 两种 AI
  */
 @Injectable()
 export class AiService {
@@ -24,26 +24,48 @@ export class AiService {
 
   /**
    * 处理 @机器人 消息
+   * @param botId 机器人ID
+   * @param userId 发送消息的用户ID
+   * @param userInfo 发送消息的用户信息
+   * @param message 消息内容
+   * @param targetId 目标ID（群聊ID或用户ID）
+   * @param source 消息来源（group/user）
    */
   async handleAtBot(
     botId: string,
     userId: string,
+    userInfo: any,
     message: string,
     targetId: string,
     source: string,
   ) {
-    // 检查使用次数限制
-    const limitKey = `ai:${botId}:${userId}:${new Date().toISOString().split('T')[0]}`;
-    const usedCount = this.cache.get<number>(limitKey) || 0;
-    const limitConfig = this.getBotLimit(botId);
-
-    if (usedCount >= limitConfig) {
-      await this.sendBotReply(botId, targetId, source, `今日使用次数已达上限（${limitConfig}次）`);
+    // 检查内容是否为空
+    if (!message || message.trim() === '') {
+      await this.sendBotReply(botId, targetId, source, userInfo, '内容不能为空~');
       return;
     }
 
-    // 更新使用次数
-    this.cache.set(limitKey, usedCount + 1, 24 * 3600);
+    // 检查内容长度限制
+    const lengthLimit = this.getBotLengthLimit(botId);
+    if (lengthLimit > 0 && message.length > lengthLimit) {
+      await this.sendBotReply(botId, targetId, source, userInfo, '问一些简单的问题吧~');
+      return;
+    }
+
+    // 检查使用次数限制
+    const limitKey = `ai:${botId}:${userId}`;
+    const usedCount = this.cache.get<number>(limitKey) || 0;
+    const limitConfig = this.getBotLimit(botId);
+
+    // 与Java保持一致：先增加计数再检查（incrementAndGet）
+    const newCount = usedCount + 1;
+    if (limitConfig > 0 && newCount > limitConfig) {
+      await this.sendBotReply(botId, targetId, source, userInfo, '您已经达到限制了，请24小时后再来吧~');
+      return;
+    }
+
+    // 更新使用次数（24小时过期）
+    this.cache.set(limitKey, newCount, 24 * 3600);
 
     try {
       let reply: string;
@@ -55,27 +77,38 @@ export class AiService {
         case 'deepseek':
           reply = await this.callDeepSeek(message);
           break;
-        case 'ragflow':
-          reply = await this.callRagFlow(message);
-          break;
         default:
-          reply = '未知的机器人类型';
+          reply = '请稍后尝试~';
       }
 
-      await this.sendBotReply(botId, targetId, source, reply);
+      await this.sendBotReply(botId, targetId, source, userInfo, reply);
     } catch (error) {
       this.logger.error(`AI 调用失败: ${error.message}`, error.stack, 'AiService');
-      await this.sendBotReply(botId, targetId, source, '抱歉，AI 服务暂时不可用，请稍后再试');
+
+      // 根据不同机器人返回不同的错误提示
+      let errorMsg = '抱歉，AI 服务暂时不可用，请稍后再试';
+      switch (botId) {
+        case 'doubao':
+          errorMsg = '豆包已离家出走了，请稍后再试~';
+          break;
+        case 'deepseek':
+          errorMsg = 'DeepSeek已离家出走了，请稍后再试~';
+          break;
+      }
+
+      await this.sendBotReply(botId, targetId, source, userInfo, errorMsg);
     }
   }
 
   /**
    * 发送机器人回复
+   * 与Java保持一致：回复消息包含@用户信息
    */
   private async sendBotReply(
     botId: string,
     targetId: string,
     source: string,
+    userInfo: any,
     content: string,
   ) {
     const now = Date.now();
@@ -86,8 +119,14 @@ export class AiService {
       name: botInfo.name,
       type: 'bot',
       badge: ['bot'],
-      ipOwnership: '云端',
+      ipOwnership: '机器人',
     };
+
+    // 构建消息内容：与Java保持一致，包含@用户和文本内容
+    const msgContent = [
+      { type: 'at', content: JSON.stringify(userInfo) },
+      { type: 'text', content },
+    ];
 
     // 保存消息到数据库
     const message = await this.prisma.message.create({
@@ -96,7 +135,7 @@ export class AiService {
         fromId: botId,
         toId: targetId,
         fromInfo: JSON.stringify(fromInfo),
-        message: JSON.stringify([{ type: 'text', content }]),
+        message: JSON.stringify(msgContent),
         isShowTime: false,
         type: 'text',
         source,
@@ -124,6 +163,8 @@ export class AiService {
     } else {
       this.websocket.sendToUser(targetId, WsContentType.Msg, responseMsg);
     }
+
+    this.logger.log(`AI [${botInfo.name}] 回复消息: ${content.substring(0, 50)}...`, 'AiService');
   }
 
   /**
@@ -170,6 +211,7 @@ export class AiService {
       'https://api.deepseek.com/chat/completions',
       {
         model,
+        stream: false,
         messages: [{ role: 'user', content: message }],
       },
       {
@@ -185,54 +227,38 @@ export class AiService {
   }
 
   /**
-   * 调用 RAGFlow
-   */
-  private async callRagFlow(message: string): Promise<string> {
-    const apiKey = this.config.get<string>('RAGFLOW_API_KEY');
-    const baseUrl = this.config.get<string>('RAGFLOW_URL') || 'http://localhost:8080';
-
-    if (!apiKey || apiKey === 'your-ragflow-api-key') {
-      return 'RAGFlow 未配置，请联系管理员';
-    }
-
-    const response = await axios.post(
-      `${baseUrl}/api/v1/chat`,
-      { query: message },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        timeout: 30000,
-      },
-    );
-
-    return response.data.answer || '无响应';
-  }
-
-  /**
    * 获取机器人信息
    */
   private getBotInfo(botId: string) {
     const bots: Record<string, { name: string; avatar: string }> = {
       doubao: { name: '豆包', avatar: '/static/bot/doubao.png' },
       deepseek: { name: 'DeepSeek', avatar: '/static/bot/deepseek.png' },
-      ragflow: { name: '林语小助手', avatar: '/static/bot/ragflow.png' },
     };
     return bots[botId] || { name: 'AI', avatar: '' };
   }
 
   /**
-   * 获取机器人每日使用限制
+   * 获取机器人每日使用次数限制
    */
   private getBotLimit(botId: string): number {
     const limits: Record<string, string> = {
       doubao: 'DOUBAO_COUNT_LIMIT',
       deepseek: 'DEEPSEEK_COUNT_LIMIT',
-      ragflow: 'RAGFLOW_COUNT_LIMIT',
     };
     const configKey = limits[botId];
-    return this.config.get<number>(configKey) || 5;
+    return this.config.get<number>(configKey) || 0;
+  }
+
+  /**
+   * 获取机器人消息长度限制
+   */
+  private getBotLengthLimit(botId: string): number {
+    const limits: Record<string, string> = {
+      doubao: 'DOUBAO_LENGTH_LIMIT',
+      deepseek: 'DEEPSEEK_LENGTH_LIMIT',
+    };
+    const configKey = limits[botId];
+    return this.config.get<number>(configKey) || 0;
   }
 
   /**

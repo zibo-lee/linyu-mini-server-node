@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../common/utils/prisma.service';
 import { LoggerService } from '../../common/utils/logger.service';
 import { WebsocketGateway } from '../../websocket/websocket.gateway';
 import { WsContentType } from '../../common/constants';
 import { SendMessageDto, RecallMessageDto, GetRecordDto } from './dto/message.dto';
+import { AiService } from '../ai/ai.service';
 
 /**
  * 消息服务 - 对应原 Java 项目的 MessageService
@@ -15,6 +16,8 @@ export class MessageService {
     private prisma: PrismaService,
     private logger: LoggerService,
     private websocket: WebsocketGateway,
+    @Inject(forwardRef(() => AiService))
+    private aiService: AiService,
   ) {}
 
   /**
@@ -39,7 +42,11 @@ export class MessageService {
     }
 
     // 敏感词过滤 (简单实现，后续可以集成完整库)
-    const filteredContent = this.filterSensitiveWords(dto.msgContent);
+    // 与Java保持一致：机器人用户不进行敏感词过滤
+    let filteredContent = dto.msgContent;
+    if (sender.type !== 'bot') {
+      filteredContent = this.filterSensitiveWords(dto.msgContent);
+    }
 
     // 获取 IP 归属地
     const ipOwnership = this.getIpOwnership(ip);
@@ -55,6 +62,34 @@ export class MessageService {
 
     // 判断是否需要显示时间（距离上一条消息超过 5 分钟）
     const isShowTime = await this.shouldShowTime(dto.targetId, dto.source || 'user', now);
+
+    // 解析消息内容，检测@机器人
+    let botUser: any = null;
+    let textContent = '';
+    if (dto.type === 'text' || !dto.type) {
+      try {
+        const contents = JSON.parse(filteredContent);
+        if (Array.isArray(contents)) {
+          for (const item of contents) {
+            if (item.type === 'text') {
+              textContent += item.content || '';
+            } else if (item.type === 'at') {
+              try {
+                const atUser = typeof item.content === 'string' ? JSON.parse(item.content) : item.content;
+                if (atUser.type === 'bot') {
+                  botUser = atUser;
+                }
+              } catch (e) {
+                // 解析@用户失败，忽略
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // JSON解析失败，使用原始内容
+        textContent = filteredContent;
+      }
+    }
 
     // 创建消息
     const message = await this.prisma.message.create({
@@ -100,6 +135,25 @@ export class MessageService {
       `[响应详情] ${JSON.stringify(responseMsg)}`,
       'MessageService',
     );
+
+    // 与Java保持一致：如果@了机器人，则调用AI服务回复
+    if (botUser) {
+      this.logger.log(
+        `检测到@机器人: ${botUser.name || botUser.id}, 文本内容: ${textContent}`,
+        'MessageService',
+      );
+      // 异步调用AI服务，不阻塞消息发送
+      setImmediate(() => {
+        this.aiService.handleAtBot(
+          botUser.id,
+          userId,
+          fromInfo,
+          textContent,
+          dto.targetId,
+          dto.source || 'group',
+        );
+      });
+    }
 
     return responseMsg;
   }

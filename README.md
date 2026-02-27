@@ -69,7 +69,6 @@ LINYU_LIMIT=100              # 在线人数限制
 # AI 配置
 DOUBAO_API_KEY=your-key
 DEEPSEEK_API_KEY=your-key
-RAGFLOW_API_KEY=your-key
 ```
 
 ## 📁 项目结构
@@ -117,7 +116,7 @@ src/
 - ✅ 视频通话信令
 - ✅ 文件上传
 - ✅ 系统通知
-- ✅ AI 对话 (豆包/DeepSeek/RAGFlow)
+- ✅ AI 对话 (豆包/DeepSeek)
 - ✅ 敏感词过滤 (待完善)
 
 ## License

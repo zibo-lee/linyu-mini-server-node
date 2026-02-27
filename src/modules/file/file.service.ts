@@ -41,7 +41,8 @@ export class FileService {
 
     return {
       url: `/uploads/${filename}`,
-      filename: file.originalname,
+      filename: filename,  // 返回存储的唯一文件名，用于后续获取文件
+      originalName: file.originalname,  // 原始文件名
       size: file.size,
       mimetype: file.mimetype,
     };

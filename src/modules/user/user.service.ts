@@ -294,13 +294,12 @@ export class UserService {
 
   /**
    * 初始化机器人用户 - 对应 Java initBotUser
-   * 创建 AI 机器人用户（豆包、DeepSeek、林语小助手）
+   * 创建 AI 机器人用户（豆包、DeepSeek）
    */
   async initBotUser() {
     const bots = [
       { id: 'doubao', name: '豆包' },
       { id: 'deepseek', name: 'DeepSeek' },
-      { id: 'ragflow', name: '林语小助手' },
     ];
 
     for (const bot of bots) {
