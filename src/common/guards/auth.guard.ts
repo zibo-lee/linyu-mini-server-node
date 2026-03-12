@@ -43,7 +43,7 @@ export class AuthGuard implements CanActivate {
       // 验证 Token
       const payload = jwt.verify(
         token,
-        process.env.JWT_SECRET || 'linyu-mini-secret',
+        process.env.JWT_SECRET || 'zibolt-chat-secret',
       ) as any;
 
       // 注意：由于使用内存缓存，服务重启后缓存会丢失

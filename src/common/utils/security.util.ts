@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 class SecurityUtilClass {
   private keyPair: { publicKey: forge.pki.rsa.PublicKey; privateKey: forge.pki.rsa.PrivateKey };
   private publicKeyPem: string;
-  private readonly AES_KEY = 'linyuMiniLinyuServer2025';
+  private readonly AES_KEY = 'ziboltChatServerKey2025';
 
   constructor() {
     // 生成 RSA 密钥对 (1024 位，与 Java 项目保持一致)

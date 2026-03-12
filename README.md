@@ -1,4 +1,4 @@
-# 林语Mini聊天室 - Node.js 版本
+# ZiboltChat聊天室 - Node.js 版本
 
 基于 NestJS + Prisma + SQLite + Socket.IO 重构的聊天室服务
 
@@ -60,11 +60,11 @@ npm run start:prod
 ```env
 PORT=9200                    # HTTP 端口
 WS_PORT=9100                 # WebSocket 端口
-DATABASE_URL="file:./linyu-mini.db"
+DATABASE_URL="file:./zibolt-chat.db"
 JWT_SECRET=your-secret-key
-LINYU_PASSWORD=sun55@kong    # 群密码
-LINYU_NAME=Linyu在线聊天室    # 群名称
-LINYU_LIMIT=100              # 在线人数限制
+ZIBOLT_PASSWORD=sun55@kong    # 群密码
+ZIBOLT_NAME=ZiboltChat在线聊天室    # 群名称
+ZIBOLT_LIMIT=100              # 在线人数限制
 
 # AI 配置
 DOUBAO_API_KEY=your-key

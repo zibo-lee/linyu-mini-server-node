@@ -39,7 +39,7 @@ async function bootstrap() {
   const port = process.env.PORT || 9200;
   await app.listen(port);
 
-  logger.log(`🚀 林语Mini服务已启动: http://localhost:${port}`);
+  logger.log(`🚀 ZiboltChat服务已启动: http://localhost:${port}`);
   logger.log(`📖 API 前缀: /api/v1`);
 }
 

@@ -27,13 +27,13 @@ export class AuthService {
    */
   async verify(dto: VerifyDto): Promise<string> {
     // 检查在线人数限制
-    const limit = this.config.get<number>('LINYU_LIMIT') || 100;
+    const limit = this.config.get<number>('ZIBOLT_LIMIT') || 100;
     const onlineCount = this.cache.getKeysByPrefix('token:').length;
     if (onlineCount >= limit) {
       throw new BadRequestException('聊天室人数已满，请稍后再试~');
     }
 
-    const configPassword = this.config.get<string>('LINYU_PASSWORD') || 'sun55@kong';
+    const configPassword = this.config.get<string>('ZIBOLT_PASSWORD') || 'sun55@kong';
     
     // 使用 RSA 解密前端传来的加密密码
     let decryptedPassword: string;
@@ -48,7 +48,7 @@ export class AuthService {
     }
 
     // 生成临时验证 token (与 Java 项目一致)
-    const secret = this.config.get<string>('JWT_SECRET') || 'linyu-mini-secret';
+    const secret = this.config.get<string>('JWT_SECRET') || 'zibolt-chat-secret';
     const verifyToken = jwt.sign({ type: 'verify' }, secret, { expiresIn: '10m' });
     return verifyToken;
   }
@@ -59,7 +59,7 @@ export class AuthService {
    */
   async login(dto: LoginDto, ip: string) {
     // 检查在线人数限制
-    const limit = this.config.get<number>('LINYU_LIMIT') || 100;
+    const limit = this.config.get<number>('ZIBOLT_LIMIT') || 100;
     const onlineCount = this.cache.getKeysByPrefix('token:').length;
     if (onlineCount >= limit) {
       throw new BadRequestException('聊天室人数已满，请稍后再试~');
@@ -111,7 +111,7 @@ export class AuthService {
     }
 
     // 生成 JWT Token（包含用户信息，与 Java 项目一致）
-    const secret = this.config.get<string>('JWT_SECRET') || 'linyu-mini-secret';
+    const secret = this.config.get<string>('JWT_SECRET') || 'zibolt-chat-secret';
     const tokenPayload = {
       type: 'user',
       userId: user.id,
@@ -170,7 +170,7 @@ export class AuthService {
       name: user.name,
       type: user.type,
     };
-    const secret = this.config.get<string>('JWT_SECRET') || 'linyu-mini-secret';
+    const secret = this.config.get<string>('JWT_SECRET') || 'zibolt-chat-secret';
     return jwt.sign(payload, secret, { expiresIn: '7d' });
   }
 

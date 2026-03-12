@@ -1,7 +1,7 @@
 {
-  "name": "linyu-mini-server-node",
+  "name": "zibolt-chat-server",
   "version": "1.0.0",
-  "description": "林语Mini聊天室 - Node.js 版本",
+  "description": "ZiboltChat聊天室 - Node.js 版本",
   "author": "ziboli",
   "private": true,
   "license": "MIT",

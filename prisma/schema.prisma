@@ -1,4 +1,4 @@
-// Prisma Schema - 林语Mini聊天室数据库模型
+// Prisma Schema - ZiboltChat聊天室数据库模型
 // 对应原 Java 项目的实体类
 
 generator client {

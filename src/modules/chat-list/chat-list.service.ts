@@ -61,7 +61,7 @@ export class ChatListService {
         group = await this.prisma.group.create({
           data: {
             id: '1',
-            name: this.config.get('LINYU_NAME') || 'sk的朋友圈',
+            name: this.config.get('ZIBOLT_NAME') || 'ZiboltChat聊天室',
             createTime: BigInt(now),
             updateTime: BigInt(now),
           },

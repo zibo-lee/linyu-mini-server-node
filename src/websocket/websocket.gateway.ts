@@ -100,7 +100,7 @@ export class WebsocketGateway implements OnModuleInit, OnModuleDestroy {
       // 验证 Token
       let payload: any;
       try {
-        payload = jwt.verify(token, process.env.JWT_SECRET || 'linyu-mini-secret-key-2024');
+        payload = jwt.verify(token, process.env.JWT_SECRET || 'zibolt-chat-secret-key-2025');
       } catch (e) {
         this.logger.warn(`连接被拒绝: Token 无效`, 'WebSocket');
         this.sendError(ws, 'Token 无效');

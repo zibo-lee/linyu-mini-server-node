@@ -36,7 +36,7 @@ export class LoggerService implements NestLoggerService {
         // 文件滚动输出
         new winston.transports.DailyRotateFile({
           dirname: logDir,
-          filename: 'linyu-mini-%DATE%.log',
+          filename: 'zibolt-chat-%DATE%.log',
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
           maxFiles: '14d',
